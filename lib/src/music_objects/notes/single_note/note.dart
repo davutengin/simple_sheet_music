@@ -27,6 +27,7 @@ class Note implements MusicalSymbol {
     this.accidental,
     this.margin = const EdgeInsets.all(10),
     this.color = Colors.black,
+    this.isBeamed = false,
     // this.stemDirection,
   });
 
@@ -47,6 +48,9 @@ class Note implements MusicalSymbol {
 
   /// The accidental of the note (if any).
   final Accidental? accidental;
+
+  /// When true the note is part of a beam group — individual flags are suppressed.
+  final bool isBeamed;
 
   /// The type of note head based on the note duration.
   NoteHeadType get noteHeadType => noteDuration.noteHeadType;
@@ -270,8 +274,8 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // The type of the note head.
   NoteHeadType get _noteHeadType => note.noteHeadType;
 
-  // Whether the note has a flag.
-  bool get hasFlag => note.noteDuration.hasFlag;
+  // Whether the note has a flag (suppressed when beamed).
+  bool get hasFlag => note.noteDuration.hasFlag && !note.isBeamed;
 
   // The type of the note flag.
   NoteFlagType? get _noteFlagType => note.noteDuration.noteFlagType;
@@ -400,6 +404,12 @@ class NoteRenderer implements MusicalSymbolRenderer {
       Offset(accBbox.right + fontSize * 0.05, accBbox.top),
     );
   }
+
+  /// Whether this note is part of a beam group.
+  bool get isBeamed => note.note.isBeamed;
+
+  /// The rendered position of the stem tip (canvas coordinates).
+  Offset get stemTipRenderPosition => note.stemTipOffset + _renderOffset;
 
   /// Returns the path of the accidental, shifted by the render offset.
   Path? get renderAccidentalPath => note.accidentalPath?.shift(_renderOffset);

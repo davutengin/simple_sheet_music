@@ -5,6 +5,7 @@ import 'package:simple_sheet_music/src/constants.dart';
 import 'package:simple_sheet_music/src/measure/bar_line_type.dart';
 import 'package:simple_sheet_music/src/measure/measure_metrics.dart';
 import 'package:simple_sheet_music/src/music_objects/interface/musical_symbol_renderer.dart';
+import 'package:simple_sheet_music/src/music_objects/notes/single_note/note.dart';
 import 'package:simple_sheet_music/src/sheet_music_layout.dart';
 
 /// The renderer for a measure in sheet music.
@@ -42,7 +43,38 @@ class MeasureRenderer {
     for (final symbol in symbolRenderers) {
       symbol.render(canvas);
     }
+    _renderBeams(canvas);
     _renderBarLine(canvas);
+  }
+
+  void _renderBeams(Canvas canvas) {
+    final noteRenderers = symbolRenderers.whereType<NoteRenderer>().toList();
+
+    // Collect consecutive beamed-note groups (min 2).
+    final groups = <List<NoteRenderer>>[];
+    List<NoteRenderer>? current;
+    for (final nr in noteRenderers) {
+      if (nr.isBeamed) {
+        current ??= [];
+        current.add(nr);
+      } else {
+        if (current != null && current.length >= 2) groups.add(current);
+        current = null;
+      }
+    }
+    if (current != null && current.length >= 2) groups.add(current);
+
+    final beamThickness = measureMetrics.staffLineThickness * 5;
+    final paint = Paint()
+      ..color = layout.lineColor
+      ..strokeWidth = beamThickness
+      ..strokeCap = StrokeCap.butt;
+
+    for (final group in groups) {
+      final p1 = group.first.stemTipRenderPosition;
+      final p2 = group.last.stemTipRenderPosition;
+      canvas.drawLine(p1, p2, paint);
+    }
   }
 
   void _renderStaffLine(Canvas canvas) {
