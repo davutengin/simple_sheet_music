@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -64,21 +65,34 @@ class MeasureRenderer {
 
     final beamThickness = measureMetrics.staffLineThickness * 5;
 
+    final beamSpacing = beamThickness * 0.7;
+
     for (final group in groups.where((g) => g.length >= 2)) {
       final tips = group.map((nr) => nr.stemTipRenderPosition).toList();
       final p1 = tips.first;
       final p2 = tips.last;
 
-      // Main beam line
-      canvas.drawLine(
-        p1, p2,
-        Paint()
-          ..color = const Color(0xFF000000)
-          ..strokeWidth = beamThickness
-          ..strokeCap = StrokeCap.butt,
-      );
+      // Max beam count across the group (e.g. 1 for 8th, 2 for 16th, …)
+      final beamCount = group
+          .map((nr) => nr.note.note.noteDuration.beamCount)
+          .fold(0, max);
+      // Stem direction: extra beams go toward note heads.
+      final stemUp = group.first.note.isStemUp;
+      final beamDir = stemUp ? 1.0 : -1.0;
 
-      // Extend intermediate stems to reach the beam line via linear interp.
+      for (int b = 0; b < beamCount; b++) {
+        final yOff = b * (beamThickness + beamSpacing) * beamDir;
+        canvas.drawLine(
+          Offset(p1.dx, p1.dy + yOff),
+          Offset(p2.dx, p2.dy + yOff),
+          Paint()
+            ..color = const Color(0xFF000000)
+            ..strokeWidth = beamThickness
+            ..strokeCap = StrokeCap.butt,
+        );
+      }
+
+      // Extend intermediate stems to reach the primary beam via linear interp.
       final dx = p2.dx - p1.dx;
       if (dx.abs() < 1) continue;
       for (int i = 1; i < group.length - 1; i++) {
@@ -127,11 +141,11 @@ class MeasureRenderer {
     final thick  = measureMetrics.staffLineThickness;
 
     final thinPaint = Paint()
-      ..color = layout.lineColor
+      ..color = const Color(0xFF000000)
       ..strokeWidth = thick;
 
     final thickPaint = Paint()
-      ..color = layout.lineColor
+      ..color = const Color(0xFF000000)
       ..strokeWidth = thick * 4;
 
     switch (barLine) {

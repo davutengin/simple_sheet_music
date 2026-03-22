@@ -53,6 +53,18 @@ enum NoteDuration {
     }
   }
 
+  /// Returns the number of beams for this note duration (0 = no beam).
+  int get beamCount {
+    switch (this) {
+      case NoteDuration.eighth:             return 1;
+      case NoteDuration.sixteenth:          return 2;
+      case NoteDuration.thirtySecond:       return 3;
+      case NoteDuration.sixtyFourth:        return 4;
+      case NoteDuration.hundredsTwentyEighth: return 5;
+      default: return 0;
+    }
+  }
+
   /// Returns the corresponding NoteFlagType for the note duration.
   NoteFlagType? get noteFlagType {
     switch (this) {

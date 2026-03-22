@@ -38,17 +38,39 @@ class StaffMetrics {
     SheetMusicLayout layout, {
     required double staffLineCenterY,
     required double leftPadding,
+    double? availableWidth,
   }) {
-    var currentX = leftPadding;
-    final measureRendereres = <MeasureRenderer>[];
+    final n = measuresMetricses.length;
+
+    // First pass: compute each measure's natural width.
+    final widths = <double>[];
     for (final measure in measuresMetricses) {
       final m = measure.renderer(
+        layout,
+        measureInitialX: 0,
+        staffLineCenterY: staffLineCenterY,
+      );
+      widths.add(m.width);
+    }
+
+    // Compute equal gap between measures so they fill availableWidth.
+    double gap = 0;
+    if (availableWidth != null && n > 1) {
+      final totalW = widths.fold<double>(0.0, (s, w) => s + w);
+      gap = ((availableWidth - totalW) / (n - 1)).clamp(0.0, double.infinity) + 80.0;
+    }
+
+    // Second pass: place measures with gap.
+    var currentX = leftPadding;
+    final measureRendereres = <MeasureRenderer>[];
+    for (int i = 0; i < n; i++) {
+      final m = measuresMetricses[i].renderer(
         layout,
         measureInitialX: currentX,
         staffLineCenterY: staffLineCenterY,
       );
-      currentX += m.width;
       measureRendereres.add(m);
+      currentX += widths[i] + (i < n - 1 ? gap : 0);
     }
 
     return StaffRenderer(measureRendereres);

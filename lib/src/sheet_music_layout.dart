@@ -57,12 +57,16 @@ class SheetMusicLayout {
 
   List<StaffRenderer> get staffRenderers {
     var currentY = _upperPaddingOnCanvas;
+    // Total canvas width available for one staff line (same for every line).
+    final availableWidth =
+        _maximumStaffWidth + _maximumStaffHorizontalMarginSum / canvasScale;
     return metrics.staffsMetricses.map((staffMetrics) {
       currentY += staffMetrics.upperHeight;
       final staffRenderer = staffMetrics.renderer(
         this,
         staffLineCenterY: currentY,
         leftPadding: _leftPaddingOnCanvas,
+        availableWidth: availableWidth,
       );
       currentY += staffMetrics.lowerHeight;
       return staffRenderer;

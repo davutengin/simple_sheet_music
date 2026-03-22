@@ -29,6 +29,7 @@ class Note implements MusicalSymbol {
     this.color = Colors.black,
     this.beamGroup,
     this.stemDirection,
+    this.vibrato = false,
   });
 
   @override
@@ -48,6 +49,9 @@ class Note implements MusicalSymbol {
 
   /// The accidental of the note (if any).
   final Accidental? accidental;
+
+  /// Whether this note has vibrato.
+  final bool vibrato;
 
   /// Beam group identifier. Same non-null value = beamed together; null = no beam.
   final int? beamGroup;
@@ -267,6 +271,9 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // Whether the stem is up (override takes priority over pitch-based default).
   bool get _isStemUp => note.stemDirection?.isUp ?? _defaultStemDirection.isUp;
 
+  /// Public accessor for stem direction (used by beam renderer).
+  bool get isStemUp => _isStemUp;
+
   // The default stem direction based on the stave position.
   StemDirection get _defaultStemDirection => stavePosition.defaultStemDirection;
 
@@ -361,6 +368,32 @@ class NoteRenderer implements MusicalSymbolRenderer {
     _renderAccidental(canvas);
     _renderStem(canvas);
     _renderLegerLine(canvas);
+    if (note.note.vibrato) _renderVibrato(canvas);
+  }
+
+  void _renderVibrato(Canvas canvas) {
+    // "~" sembolünü nota başının üstüne çiz
+    const symbol   = '~';
+    const fontSize = 180.0; // canvas birimi
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(textDirection: ui.TextDirection.ltr, maxLines: 1),
+    )
+      ..pushStyle(ui.TextStyle(
+        fontSize:   fontSize,
+        color:      note.note.color,
+        fontWeight: ui.FontWeight.w700,
+      ))
+      ..addText(symbol);
+    final paragraph = pb.build()
+      ..layout(const ui.ParagraphConstraints(width: 400));
+
+    // Nota başının yatay ortası, dikey olarak biraz üstü
+    final noteHeadCenter = _noteHeadCenterX;
+    final topY = _renderOffset.dy + note.bbox.top - fontSize * 0.55;
+    canvas.drawParagraph(
+      paragraph,
+      Offset(noteHeadCenter - paragraph.longestLine / 2, topY),
+    );
   }
 
   void _renderNoteHead(Canvas canvas) {
