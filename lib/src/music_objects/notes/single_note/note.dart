@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:simple_sheet_music/src/extension/list_extension.dart';
 import 'package:simple_sheet_music/src/glyph_metadata.dart';
@@ -159,8 +161,16 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // The left x-coordinate of the note head.
   double get noteHeadLeftX => _noteHeadBbox.left;
 
-  // The width of the accidental (if any).
-  double get accidentalWidth => _accidentalBbox?.width ?? 0;
+  // Suffix varsa ("2" gibi) bunun için rezerve edilen ek genişlik.
+  double get _accidentalSuffixWidth =>
+      _accidental?.suffixText != null ? _suffixFontSize * 0.65 : 0;
+
+  // Suffix font boyutu canvas birimlerinde (~0.45 staffSpace).
+  static const double _suffixFontSize = 112.0;
+
+  // The width of the accidental (if any), suffix dahil.
+  double get accidentalWidth =>
+      (_accidentalBbox?.width ?? 0) + _accidentalSuffixWidth;
 
   // The bounding box of the accidental (if any).
   Rect? get _accidentalBbox {
@@ -355,14 +365,39 @@ class NoteRenderer implements MusicalSymbolRenderer {
   }
 
   void _renderAccidental(Canvas canvas) {
-    if (!note.hasAccidental) {
-      return;
-    }
+    if (!note.hasAccidental) return;
+
     canvas.drawPath(
       renderAccidentalPath!,
       Paint()
         ..color = note.note.color
         ..strokeWidth = 2,
+    );
+
+    // Suffix varsa (örn. flat2 için "2") arızanın sağ üstüne çiz.
+    final suffix = note._accidental?.suffixText;
+    if (suffix == null) return;
+
+    final accBbox = renderAccidentalPath!.getBounds();
+    final fontSize = NoteMetrics._suffixFontSize;
+
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(textDirection: ui.TextDirection.ltr, maxLines: 1),
+    )
+      ..pushStyle(ui.TextStyle(
+        fontSize:   fontSize,
+        color:      note.note.color,
+        fontWeight: ui.FontWeight.w700,
+      ))
+      ..addText(suffix);
+
+    final paragraph = pb.build()
+      ..layout(const ui.ParagraphConstraints(width: 300));
+
+    // Bemol glifi'nin sağ kenarının hemen yanına, glifin üst yarısına hizala.
+    canvas.drawParagraph(
+      paragraph,
+      Offset(accBbox.right + fontSize * 0.05, accBbox.top),
     );
   }
 
