@@ -31,7 +31,9 @@ enum KeySignatureType {
   gFlatMajor(6, _flatKey, isSharp: false, isFlat: true),
   eFlatMinor(6, _flatKey, isSharp: false, isFlat: true),
   cFlatMajor(7, _flatKey, isSharp: false, isFlat: true),
-  aFlatMinor(7, _flatKey, isSharp: false, isFlat: true);
+  aFlatMinor(7, _flatKey, isSharp: false, isFlat: true),
+  /// Si konumuna ♭ + "2" gösteren donanım (Si Bemol 2).
+  siFlat2(1, _flatKey, isSharp: false, isFlat: true, suffixText: '2');
 
   /// Creates a [KeySignatureType] instance.
   ///
@@ -39,11 +41,13 @@ enum KeySignatureType {
   /// The [pathKey] is the path of the key symbol.
   /// The [isSharp] indicates whether the key signature uses sharps.
   /// The [isFlat] indicates whether the key signature uses flats.
+  /// The [suffixText] is an optional text drawn after the first accidental glyph.
   const KeySignatureType(
     this.keyNum,
     this.pathKey, {
     required this.isSharp,
     required this.isFlat,
+    this.suffixText,
   }) : assert(!(isSharp && isFlat));
 
   /// The number of keys in the key signature.
@@ -58,6 +62,9 @@ enum KeySignatureType {
   /// Indicates whether the key signature uses flats.
   final bool isFlat;
 
+  /// İsteğe bağlı: arıza glifi'nin sağına yazılacak metin (örn. "2").
+  final String? suffixText;
+
   static const _flatKey = 'uniE260';
   static const _sharpKey = 'uniE262';
 
@@ -65,8 +72,7 @@ enum KeySignatureType {
   int get defaultOffsetSpace => isSharp ? 1 : 0;
 
   /// Returns whether the key signature has parts.
-  bool get hasParts =>
-      this != KeySignatureType.cMajor && this != KeySignatureType.aMinor;
+  bool get hasParts => keyNum > 0;
 
   /// Returns the positions of the key signature on the staff for the given [clefType].
   List<int> keySignaturePositions(ClefType clefType) => isSharp

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import 'package:simple_sheet_music/src/constants.dart';
@@ -163,6 +165,12 @@ class KeySignature implements MusicalSymbol {
     this.margin = const EdgeInsets.all(10),
   }) : keySignatureType = KeySignatureType.aFlatMinor;
 
+  /// Si Bemol 2 donanımı: Si konumuna ♭2.
+  const KeySignature.siFlat2({
+    this.color = Colors.black,
+    this.margin = const EdgeInsets.all(10),
+  }) : keySignatureType = KeySignatureType.siFlat2;
+
   final KeySignatureType keySignatureType;
 
   @override
@@ -251,10 +259,15 @@ class KeySignatureMetrics implements MusicalSymbolMetrics {
       hasParts ? keySignatureParts.map((e) => e.upperHeight).min : 0;
 
   @override
-  double get width => _objectWidth;
+  double get width => _objectWidth + _suffixExtraWidth;
 
   double get _objectWidth =>
       hasParts ? keySignatureParts.map((e) => e.width).sum : 0;
+
+  static const double _suffixFontSize = 390.0;
+
+  double get _suffixExtraWidth =>
+      keySignatureType.suffixText != null ? _suffixFontSize * 0.65 : 0;
 
   @override
   MusicalSymbolRenderer renderer(
@@ -298,6 +311,33 @@ class KeySignatureRenderer implements MusicalSymbolRenderer {
         keySignature.keySignature.color,
       );
     }
+    _renderSuffix(canvas);
+  }
+
+  void _renderSuffix(Canvas canvas) {
+    final suffix = keySignature.keySignatureType.suffixText;
+    if (suffix == null || keySignatureParts.isEmpty) return;
+
+    final partBbox = keySignatureParts.first.bbox.shift(renderOffset);
+    const fontSize = KeySignatureMetrics._suffixFontSize;
+
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(textDirection: ui.TextDirection.ltr, maxLines: 1),
+    )
+      ..pushStyle(ui.TextStyle(
+        fontSize: fontSize,
+        color: keySignature.keySignature.color,
+        fontWeight: ui.FontWeight.w700,
+      ))
+      ..addText(suffix);
+
+    final paragraph = pb.build()
+      ..layout(const ui.ParagraphConstraints(width: 300));
+
+    canvas.drawParagraph(
+      paragraph,
+      Offset(partBbox.right + fontSize * 0.05, partBbox.top),
+    );
   }
 
   @override
