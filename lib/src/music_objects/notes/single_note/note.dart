@@ -27,15 +27,15 @@ class Note implements MusicalSymbol {
     this.accidental,
     this.margin = const EdgeInsets.all(10),
     this.color = Colors.black,
-    this.isBeamed = false,
-    // this.stemDirection,
+    this.beamGroup,
+    this.stemDirection,
   });
 
   @override
   final EdgeInsets margin;
 
-  // /// The direction of the note stem.
-  // final StemDirection? stemDirection;
+  /// Stem direction override (null = auto based on pitch position).
+  final StemDirection? stemDirection;
 
   @override
   final Color color;
@@ -49,8 +49,8 @@ class Note implements MusicalSymbol {
   /// The accidental of the note (if any).
   final Accidental? accidental;
 
-  /// When true the note is part of a beam group — individual flags are suppressed.
-  final bool isBeamed;
+  /// Beam group identifier. Same non-null value = beamed together; null = no beam.
+  final int? beamGroup;
 
   /// The type of note head based on the note duration.
   NoteHeadType get noteHeadType => noteDuration.noteHeadType;
@@ -264,9 +264,8 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // Whether the note has a stem.
   bool get hasStem => note.noteDuration.hasStem;
 
-  // Whether the stem is up.
-  // bool get _isStemUp => note.stemDirection?.isUp ?? _defaultStemDirection.isUp;
-  bool get _isStemUp => _defaultStemDirection.isUp;
+  // Whether the stem is up (override takes priority over pitch-based default).
+  bool get _isStemUp => note.stemDirection?.isUp ?? _defaultStemDirection.isUp;
 
   // The default stem direction based on the stave position.
   StemDirection get _defaultStemDirection => stavePosition.defaultStemDirection;
@@ -274,8 +273,8 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // The type of the note head.
   NoteHeadType get _noteHeadType => note.noteHeadType;
 
-  // Whether the note has a flag (suppressed when beamed).
-  bool get hasFlag => note.noteDuration.hasFlag && !note.isBeamed;
+  // Whether the note has a flag (suppressed when in a beam group).
+  bool get hasFlag => note.noteDuration.hasFlag && note.beamGroup == null;
 
   // The type of the note flag.
   NoteFlagType? get _noteFlagType => note.noteDuration.noteFlagType;
@@ -405,8 +404,8 @@ class NoteRenderer implements MusicalSymbolRenderer {
     );
   }
 
-  /// Whether this note is part of a beam group.
-  bool get isBeamed => note.note.isBeamed;
+  /// Beam group of this note (null = not beamed).
+  int? get beamGroup => note.note.beamGroup;
 
   /// The rendered position of the stem tip (canvas coordinates).
   Offset get stemTipRenderPosition => note.stemTipOffset + _renderOffset;

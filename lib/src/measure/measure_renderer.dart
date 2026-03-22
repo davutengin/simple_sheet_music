@@ -50,30 +50,51 @@ class MeasureRenderer {
   void _renderBeams(Canvas canvas) {
     final noteRenderers = symbolRenderers.whereType<NoteRenderer>().toList();
 
-    // Collect consecutive beamed-note groups (min 2).
+    // Group by consecutive notes with the same non-null beamGroup value.
     final groups = <List<NoteRenderer>>[];
-    List<NoteRenderer>? current;
     for (final nr in noteRenderers) {
-      if (nr.isBeamed) {
-        current ??= [];
-        current.add(nr);
+      final g = nr.beamGroup;
+      if (g == null) continue;
+      if (groups.isNotEmpty && groups.last.last.beamGroup == g) {
+        groups.last.add(nr);
       } else {
-        if (current != null && current.length >= 2) groups.add(current);
-        current = null;
+        groups.add([nr]);
       }
     }
-    if (current != null && current.length >= 2) groups.add(current);
 
     final beamThickness = measureMetrics.staffLineThickness * 5;
-    final paint = Paint()
-      ..color = layout.lineColor
-      ..strokeWidth = beamThickness
-      ..strokeCap = StrokeCap.butt;
 
-    for (final group in groups) {
-      final p1 = group.first.stemTipRenderPosition;
-      final p2 = group.last.stemTipRenderPosition;
-      canvas.drawLine(p1, p2, paint);
+    for (final group in groups.where((g) => g.length >= 2)) {
+      final tips = group.map((nr) => nr.stemTipRenderPosition).toList();
+      final p1 = tips.first;
+      final p2 = tips.last;
+
+      // Main beam line
+      canvas.drawLine(
+        p1, p2,
+        Paint()
+          ..color = const Color(0xFF000000)
+          ..strokeWidth = beamThickness
+          ..strokeCap = StrokeCap.butt,
+      );
+
+      // Extend intermediate stems to reach the beam line via linear interp.
+      final dx = p2.dx - p1.dx;
+      if (dx.abs() < 1) continue;
+      for (int i = 1; i < group.length - 1; i++) {
+        final tip = tips[i];
+        final t = (tip.dx - p1.dx) / dx;
+        final beamY = p1.dy + t * (p2.dy - p1.dy);
+        if ((beamY - tip.dy).abs() < 1) continue;
+        canvas.drawLine(
+          tip,
+          Offset(tip.dx, beamY),
+          Paint()
+            ..color = const Color(0xFF000000)
+            ..strokeWidth = group[i].note.stemThickness
+            ..strokeCap = StrokeCap.butt,
+        );
+      }
     }
   }
 
