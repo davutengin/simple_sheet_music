@@ -97,8 +97,8 @@ class SheetMusicLayout {
   void _renderTempo(Canvas canvas) {
     final t = tempo!;
     // Font boyutu canvas biriminden ekrana yansıyan efektif piksel:
-    //   fontSize * canvasScale  =  _tempoScreenPx * 0.52  ≈ 23 px  (sabit)
-    final fontSize = _tempoScreenPx * 0.52 / canvasScale;
+    //   fontSize * canvasScale  =  _tempoScreenPx * 0.364  ≈ 16 px  (sabit)
+    final fontSize = _tempoScreenPx * 0.364 / canvasScale;
     final textY    = _tempoScreenPx * 0.12 / canvasScale;
 
     final pb = ui.ParagraphBuilder(
