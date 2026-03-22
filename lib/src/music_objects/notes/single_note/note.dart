@@ -30,6 +30,7 @@ class Note implements MusicalSymbol {
     this.beamGroup,
     this.stemDirection,
     this.vibrato = false,
+    this.isGrace = false,
   });
 
   @override
@@ -52,6 +53,9 @@ class Note implements MusicalSymbol {
 
   /// Whether this note has vibrato.
   final bool vibrato;
+
+  /// Whether this is a grace note (rendered small, before the next note).
+  final bool isGrace;
 
   /// Beam group identifier. Same non-null value = beamed together; null = no beam.
   final int? beamGroup;
@@ -88,9 +92,6 @@ class NoteMetrics implements MusicalSymbolMetrics {
 
   // The note object associated with these metrics.
   final Note note;
-
-  @override
-  double get lowerHeight => bbox.bottom;
 
   // The width of the note head.
   double get noteHeadWidth => _noteHeadBbox.width;
@@ -136,6 +137,8 @@ class NoteMetrics implements MusicalSymbolMetrics {
   // The color of the note.
   Color get color => note.color;
 
+  static const double _graceScale = 0.60;
+
   @override
   MusicalSymbolRenderer renderer(
     SheetMusicLayout layout, {
@@ -150,10 +153,13 @@ class NoteMetrics implements MusicalSymbolMetrics {
       );
 
   @override
-  double get upperHeight => -bbox.top;
+  double get upperHeight => note.isGrace ? -bbox.top * _graceScale : -bbox.top;
 
   @override
-  double get width => bbox.width;
+  double get lowerHeight => note.isGrace ? bbox.bottom * _graceScale : bbox.bottom;
+
+  @override
+  double get width => note.isGrace ? bbox.width * _graceScale : bbox.width;
 
   // The bounding box of the note head.
   Rect get _noteHeadBbox => noteHeadPath.getBounds();
@@ -361,38 +367,60 @@ class NoteRenderer implements MusicalSymbolRenderer {
   @override
   bool isHit(Offset position) => _renderArea.contains(position);
 
+  static const double _graceScale = 0.60;
+
   @override
   void render(Canvas canvas) {
+    if (note.note.isGrace) {
+      _renderGrace(canvas);
+    } else {
+      _renderNoteHead(canvas);
+      _renderFlag(canvas);
+      _renderAccidental(canvas);
+      _renderStem(canvas);
+      _renderLegerLine(canvas);
+      if (note.note.vibrato) _renderTrill(canvas);
+    }
+  }
+
+  void _renderGrace(Canvas canvas) {
+    final px = _renderOffset.dx;
+    final py = _renderOffset.dy;
+    canvas.save();
+    canvas.translate(px, py);
+    canvas.scale(_graceScale, _graceScale);
+    canvas.translate(-px / _graceScale, -py / _graceScale);
     _renderNoteHead(canvas);
     _renderFlag(canvas);
     _renderAccidental(canvas);
     _renderStem(canvas);
     _renderLegerLine(canvas);
-    if (note.note.vibrato) _renderVibrato(canvas);
+    // Acciaccatura slash
+    final sRoot = note.stemRootOffset + _renderOffset;
+    final sTip  = note.stemTipOffset  + _renderOffset;
+    final midY  = (sRoot.dy + sTip.dy) / 2;
+    final slashLen = 120.0;
+    canvas.drawLine(
+      Offset(sRoot.dx - slashLen * 0.35, midY + slashLen * 0.35),
+      Offset(sRoot.dx + slashLen * 0.65, midY - slashLen * 0.65),
+      Paint()
+        ..color = note.color
+        ..strokeWidth = note.stemThickness * 1.8,
+    );
+    canvas.restore();
   }
 
-  void _renderVibrato(Canvas canvas) {
-    // "~" sembolünü nota başının üstüne çiz
-    const symbol   = '~';
-    const fontSize = 180.0; // canvas birimi
-    final pb = ui.ParagraphBuilder(
-      ui.ParagraphStyle(textDirection: ui.TextDirection.ltr, maxLines: 1),
-    )
-      ..pushStyle(ui.TextStyle(
-        fontSize:   fontSize,
-        color:      note.note.color,
-        fontWeight: ui.FontWeight.w700,
-      ))
-      ..addText(symbol);
-    final paragraph = pb.build()
-      ..layout(const ui.ParagraphConstraints(width: 400));
+  void _renderTrill(Canvas canvas) {
+    final trillPath   = note.paths.parsePath('uniE566');
+    final trillBounds = trillPath.getBounds();
+    final nhBounds    = noteHeadRenderPath.getBounds();
 
-    // Nota başının yatay ortası, dikey olarak biraz üstü
-    final noteHeadCenter = _noteHeadCenterX;
-    final topY = _renderOffset.dy + note.bbox.top - fontSize * 0.55;
-    canvas.drawParagraph(
-      paragraph,
-      Offset(noteHeadCenter - paragraph.longestLine / 2, topY),
+    final x = nhBounds.center.dx - trillBounds.width / 2 - trillBounds.left;
+    final y = nhBounds.top - trillBounds.height - trillBounds.top - 80;
+
+    canvas.drawPath(
+      trillPath.shift(Offset(x, y)),
+      Paint()..color = note.note.color,
     );
   }
 
