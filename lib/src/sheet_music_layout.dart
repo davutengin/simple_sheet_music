@@ -50,7 +50,7 @@ class SheetMusicLayout {
   double get _verticalPaddingOnCanvas => _verticalPadding / canvasScale;
 
   /// The upper padding on the canvas.
-  double get _upperPaddingOnCanvas => _verticalPaddingOnCanvas / 2;
+  double get _upperPaddingOnCanvas => 0;
 
   /// The list of staff renderers.
   List<StaffRenderer> get staffRenderers {
