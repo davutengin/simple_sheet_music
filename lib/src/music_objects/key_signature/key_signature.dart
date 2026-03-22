@@ -269,8 +269,10 @@ class KeySignatureMetrics implements MusicalSymbolMetrics {
         staffLineCenterY: staffLineCenterY,
       );
 
+  // C major / A minor gibi işaretsiz armürlerde içerik yok,
+  // boş margin eklememek için sıfır döndür.
   @override
-  EdgeInsets get margin => keySignature.margin;
+  EdgeInsets get margin => hasParts ? keySignature.margin : EdgeInsets.zero;
 }
 
 class KeySignatureRenderer implements MusicalSymbolRenderer {
