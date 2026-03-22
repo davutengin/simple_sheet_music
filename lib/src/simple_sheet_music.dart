@@ -9,6 +9,7 @@ import 'package:simple_sheet_music/src/measure/measure.dart';
 import 'package:simple_sheet_music/src/music_objects/clef/clef_type.dart';
 import 'package:simple_sheet_music/src/sheet_music_metrics.dart';
 import 'package:simple_sheet_music/src/sheet_music_renderer.dart';
+import 'package:simple_sheet_music/src/tempo.dart';
 import 'package:xml/xml.dart';
 
 import 'font_types.dart';
@@ -33,6 +34,7 @@ class SimpleSheetMusic extends StatefulWidget {
     this.width = 400.0,
     this.lineColor = Colors.black54,
     this.fontType = FontType.bravura,
+    this.tempo,
   });
 
   /// The list of measures to be displayed.
@@ -57,6 +59,9 @@ class SimpleSheetMusic extends StatefulWidget {
   // final OnTapMusicObjectCallback? onTap;
 
   final Color lineColor;
+
+  /// Tempo işareti – varsa ilk ölçünün üstüne sol tarafa çizilir.
+  final Tempo? tempo;
 
   @override
   SimpleSheetMusicState createState() => SimpleSheetMusicState();
@@ -107,8 +112,9 @@ class SimpleSheetMusicState extends State<SimpleSheetMusic> {
         final layout = SheetMusicLayout(
           metricsBuilder,
           widget.lineColor,
-          widgetWidth: widget.width,
+          widgetWidth:  widget.width,
           widgetHeight: widget.height,
+          tempo:        widget.tempo,
         );
         return CustomPaint(
           size: targetSize,

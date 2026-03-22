@@ -1,8 +1,10 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:simple_sheet_music/src/sheet_music_metrics.dart';
 import 'package:simple_sheet_music/src/staff/staff_renderer.dart';
+import 'package:simple_sheet_music/src/tempo.dart';
 
 /// Represents the layout of the sheet music.
 class SheetMusicLayout {
@@ -11,6 +13,7 @@ class SheetMusicLayout {
     this.lineColor, {
     required this.widgetHeight,
     required this.widgetWidth,
+    this.tempo,
   });
 
   /// The height of the widget.
@@ -25,34 +28,33 @@ class SheetMusicLayout {
   /// The color of the lines in the sheet music.
   final Color lineColor;
 
-  /// The maximum width of a staff.
-  double get _maximumStaffWidth => metrics.maximumStaffWidth;
+  /// Tempo işareti (opsiyonel).
+  final Tempo? tempo;
 
-  /// The sum of the horizontal margins of all the staffs.
+  // Tempo metni için ekran pikseli cinsinden sabit rezervasyon.
+  static const double _tempoScreenPx = 44.0;
+
+  // ─── Horizontal ────────────────────────────────────────────────────────────
+
+  double get _maximumStaffWidth => metrics.maximumStaffWidth;
   double get _maximumStaffHorizontalMarginSum =>
       metrics.maximumStaffHorizontalMarginSum;
 
-  /// The horizontal padding of the sheet music.
   double get _horizontalPadding =>
       widgetWidth -
       (_maximumStaffWidth * canvasScale + _maximumStaffHorizontalMarginSum);
-
-  /// The horizontal padding on the canvas.
   double get _horizontalPaddingOnCanvas => _horizontalPadding / canvasScale;
-
-  /// The left padding on the canvas.
   double get _leftPaddingOnCanvas => _horizontalPaddingOnCanvas / 2;
 
-  /// The vertical padding of the sheet music.
-  double get _verticalPadding => widgetHeight - _staffsHeightsSum * canvasScale;
+  // ─── Vertical ──────────────────────────────────────────────────────────────
 
-  /// The vertical padding on the canvas.
-  double get _verticalPaddingOnCanvas => _verticalPadding / canvasScale;
+  /// Tempo varsa sabit bir ekran-piksel alanı ayır; yoksa sıfır.
+  /// Canvas birimi = _tempoScreenPx / canvasScale  →  ekranda tam _tempoScreenPx px.
+  double get _upperPaddingOnCanvas =>
+      tempo != null ? _tempoScreenPx / canvasScale : 0;
 
-  /// The upper padding on the canvas.
-  double get _upperPaddingOnCanvas => 0;
+  // ─── Staff renderers ───────────────────────────────────────────────────────
 
-  /// The list of staff renderers.
   List<StaffRenderer> get staffRenderers {
     var currentY = _upperPaddingOnCanvas;
     return metrics.staffsMetricses.map((staffMetrics) {
@@ -67,23 +69,54 @@ class SheetMusicLayout {
     }).toList();
   }
 
-  /// The sum of the heights of all the staffs.
   double get _staffsHeightsSum => metrics.staffsHeightSum;
 
-  /// The scale factor for the width of the sheet music.
+  // ─── Scale ─────────────────────────────────────────────────────────────────
+
   double get _widthScale =>
       (widgetWidth - _maximumStaffHorizontalMarginSum) / _maximumStaffWidth;
 
-  /// The scale factor for the height of the sheet music.
-  double get _heightScale => widgetHeight / _staffsHeightsSum;
+  /// Tempo varsa o alan çıkartılarak hesaplanır; sonsuz döngüyü önlemek için
+  /// sabit ekran piksel değeri kullanılır.
+  double get _heightScale =>
+      tempo != null
+          ? (widgetHeight - _tempoScreenPx) / _staffsHeightsSum
+          : widgetHeight / _staffsHeightsSum;
 
-  /// The scale factor for the canvas.
   double get canvasScale => min(_widthScale, _heightScale);
 
-  /// Renders the sheet music on the canvas.
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   void render(Canvas canvas, Size size) {
+    if (tempo != null) _renderTempo(canvas);
     for (final staff in staffRenderers) {
       staff.render(canvas, size);
     }
+  }
+
+  void _renderTempo(Canvas canvas) {
+    final t = tempo!;
+    // Font boyutu canvas biriminden ekrana yansıyan efektif piksel:
+    //   fontSize * canvasScale  =  _tempoScreenPx * 0.52  ≈ 23 px  (sabit)
+    final fontSize = _tempoScreenPx * 0.52 / canvasScale;
+    final textY    = _tempoScreenPx * 0.12 / canvasScale;
+
+    final pb = ui.ParagraphBuilder(
+      ui.ParagraphStyle(
+        textDirection: ui.TextDirection.ltr,
+        maxLines: 1,
+      ),
+    )
+      ..pushStyle(ui.TextStyle(
+        fontSize:   fontSize,
+        color:      t.color,
+        fontWeight: ui.FontWeight.w500,
+      ))
+      ..addText(t.displayText);
+
+    final paragraph = pb.build()
+      ..layout(ui.ParagraphConstraints(width: widgetWidth / canvasScale));
+
+    canvas.drawParagraph(paragraph, Offset(_leftPaddingOnCanvas, textY));
   }
 }
