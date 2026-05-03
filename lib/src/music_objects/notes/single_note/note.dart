@@ -156,10 +156,11 @@ class NoteMetrics implements MusicalSymbolMetrics {
   double get upperHeight => note.isGrace ? -bbox.top * _graceScale : -bbox.top;
 
   @override
-  double get lowerHeight => note.isGrace ? bbox.bottom * _graceScale : bbox.bottom;
+  double get lowerHeight =>
+      note.isGrace ? bbox.bottom * _graceScale : bbox.bottom;
 
   @override
-  double get width => note.isGrace ? bbox.width * _graceScale : bbox.width;
+  double get width => bbox.width;
 
   // The bounding box of the note head.
   Rect get _noteHeadBbox => noteHeadPath.getBounds();
@@ -384,12 +385,11 @@ class NoteRenderer implements MusicalSymbolRenderer {
   }
 
   void _renderGrace(Canvas canvas) {
-    final px = _renderOffset.dx;
-    final py = _renderOffset.dy;
+    final anchor = noteHeadRenderPath.getBounds().center;
     canvas.save();
-    canvas.translate(px, py);
+    canvas.translate(anchor.dx, anchor.dy);
     canvas.scale(_graceScale, _graceScale);
-    canvas.translate(-px / _graceScale, -py / _graceScale);
+    canvas.translate(-anchor.dx, -anchor.dy);
     _renderNoteHead(canvas);
     _renderFlag(canvas);
     _renderAccidental(canvas);
@@ -397,9 +397,9 @@ class NoteRenderer implements MusicalSymbolRenderer {
     _renderLegerLine(canvas);
     // Acciaccatura slash
     final sRoot = note.stemRootOffset + _renderOffset;
-    final sTip  = note.stemTipOffset  + _renderOffset;
-    final midY  = (sRoot.dy + sTip.dy) / 2;
-    final slashLen = 120.0;
+    final sTip = note.stemTipOffset + _renderOffset;
+    final midY = (sRoot.dy + sTip.dy) / 2;
+    final slashLen = 54.0;
     canvas.drawLine(
       Offset(sRoot.dx - slashLen * 0.35, midY + slashLen * 0.35),
       Offset(sRoot.dx + slashLen * 0.65, midY - slashLen * 0.65),
@@ -411,9 +411,9 @@ class NoteRenderer implements MusicalSymbolRenderer {
   }
 
   void _renderTrill(Canvas canvas) {
-    final trillPath   = note.paths.parsePath('uniE566');
+    final trillPath = note.paths.parsePath('uniE566');
     final trillBounds = trillPath.getBounds();
-    final nhBounds    = noteHeadRenderPath.getBounds();
+    final nhBounds = noteHeadRenderPath.getBounds();
 
     final x = nhBounds.center.dx - trillBounds.width / 2 - trillBounds.left;
     final y = nhBounds.top - trillBounds.height - trillBounds.top - 80;
@@ -449,8 +449,8 @@ class NoteRenderer implements MusicalSymbolRenderer {
       ui.ParagraphStyle(textDirection: ui.TextDirection.ltr, maxLines: 1),
     )
       ..pushStyle(ui.TextStyle(
-        fontSize:   fontSize,
-        color:      note.note.color,
+        fontSize: fontSize,
+        color: note.note.color,
         fontWeight: ui.FontWeight.w700,
       ))
       ..addText(suffix);
