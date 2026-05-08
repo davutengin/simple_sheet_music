@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -398,14 +399,23 @@ class NoteRenderer implements MusicalSymbolRenderer {
     // Acciaccatura slash
     final sRoot = note.stemRootOffset + _renderOffset;
     final sTip = note.stemTipOffset + _renderOffset;
-    final midY = (sRoot.dy + sTip.dy) / 2;
-    final slashLen = 54.0;
+    final stemTopY = math.min(sRoot.dy, sTip.dy);
+    final stemBottomY = math.max(sRoot.dy, sTip.dy);
+    final stemLength = stemBottomY - stemTopY;
+    final stemX = sRoot.dx;
+    final slashStart = note.isStemUp
+        ? Offset(stemX - 24, stemTopY + stemLength * 0.18)
+        : Offset(stemX - 4, stemTopY + stemLength * 0.54);
+    final slashEnd = note.isStemUp
+        ? Offset(stemX + 5, stemTopY + stemLength * 0.34)
+        : Offset(stemX + 25, stemTopY + stemLength * 0.70);
     canvas.drawLine(
-      Offset(sRoot.dx - slashLen * 0.35, midY + slashLen * 0.35),
-      Offset(sRoot.dx + slashLen * 0.65, midY - slashLen * 0.65),
+      slashStart,
+      slashEnd,
       Paint()
         ..color = note.color
-        ..strokeWidth = note.stemThickness * 1.8,
+        ..strokeWidth = note.stemThickness * 1.6
+        ..strokeCap = StrokeCap.round,
     );
     canvas.restore();
   }
